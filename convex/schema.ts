@@ -38,8 +38,30 @@ export default defineSchema({
     ringerMode: v.union(v.literal("Normal"), v.literal("Silent"), v.literal("Vibrate")),
     networkStatus: v.string(),
     isEmergency: v.boolean(),
+    isSirenActive: v.optional(v.boolean()), // Remote Siren Trigger
+    isCrashDetected: v.optional(v.boolean()), // Crash/Impact Sensor Detection
     lastUpdated: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_family", ["familyId"]),
+
+  // Safe Zones & Geofencing Table
+  safeZones: defineTable({
+    familyId: v.id("families"),
+    name: v.string(), // e.g. "Home", "Office", "School"
+    lat: v.number(),
+    lng: v.number(),
+    radiusMeters: v.number(), // e.g. 200m
+    createdBy: v.id("users"),
+  }).index("by_family", ["familyId"]),
+
+  // Location History Timeline Trail Table
+  locationHistory: defineTable({
+    userId: v.id("users"),
+    lat: v.number(),
+    lng: v.number(),
+    locationName: v.optional(v.string()),
+    speed: v.union(v.number(), v.null()),
+    timestamp: v.number(),
+  }).index("by_user_time", ["userId", "timestamp"]),
 });

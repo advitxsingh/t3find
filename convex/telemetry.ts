@@ -22,7 +22,7 @@ export const updateProfile = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    const finalAvatar = args.avatarUrl?.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(args.name)}&background=d97706&color=ffffff&bold=true`;
+    const finalAvatar = args.avatarUrl?.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(args.name)}&background=0f172a&color=ffffff&bold=true`;
 
     await ctx.db.patch(userId, {
       name: args.name,
@@ -72,7 +72,6 @@ export const createFamily = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    // Generate random 6-character uppercase invite code (e.g., T3-X89A)
     const code = "T3-" + Math.random().toString(36).substring(2, 7).toUpperCase();
 
     const familyId = await ctx.db.insert("families", {
@@ -111,7 +110,6 @@ export const joinFamilyWithCode = mutation({
       throw new Error("Invalid family invite code. Please double check and try again.");
     }
 
-    // Check if user is already a member
     const existingMembership = await ctx.db
       .query("familyMembers")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -121,7 +119,6 @@ export const joinFamilyWithCode = mutation({
       if (existingMembership.familyId === family._id) {
         return { familyId: family._id, name: family.name };
       }
-      // Update membership to new family
       await ctx.db.patch(existingMembership._id, { familyId: family._id });
     } else {
       await ctx.db.insert("familyMembers", {
@@ -131,7 +128,6 @@ export const joinFamilyWithCode = mutation({
       });
     }
 
-    // Update familyId in user's telemetry entry
     const existingTelemetry = await ctx.db
       .query("telemetry")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -158,7 +154,6 @@ export const getFamilyMesh = query({
       .first();
 
     if (!membership) {
-      // If user hasn't joined a family circle yet, return only their own telemetry
       const myTelemetry = await ctx.db
         .query("telemetry")
         .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -166,7 +161,6 @@ export const getFamilyMesh = query({
       return myTelemetry ? [myTelemetry] : [];
     }
 
-    // Get all user memberships in this family
     const familyMemberships = await ctx.db
       .query("familyMembers")
       .withIndex("by_family", (q) => q.eq("familyId", membership.familyId))
@@ -174,13 +168,53 @@ export const getFamilyMesh = query({
 
     const familyUserIds = familyMemberships.map((m) => m.userId);
 
-    // Fetch telemetry records for all family members
     const allTelemetry = await ctx.db.query("telemetry").collect();
     return allTelemetry.filter((t) => familyUserIds.includes(t.userId));
   },
 });
 
-// Update live GPS location and device status
+// Remote Siren Trigger Mutation (Ring target phone loudly)
+export const triggerRemoteSiren = mutation({
+  args: {
+    targetUserId: v.id("users"),
+    active: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const targetTelemetry = await ctx.db
+      .query("telemetry")
+      .withIndex("by_user", (q) => q.eq("userId", args.targetUserId))
+      .first();
+
+    if (targetTelemetry) {
+      await ctx.db.patch(targetTelemetry._id, { isSirenActive: args.active });
+    }
+  },
+});
+
+// Trigger Impact / Crash Alert
+export const triggerCrashAlert = mutation({
+  args: {
+    isCrash: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const telemetry = await ctx.db
+      .query("telemetry")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    if (telemetry) {
+      await ctx.db.patch(telemetry._id, { isCrashDetected: args.isCrash, isEmergency: args.isCrash });
+    }
+  },
+});
+
+// Update live GPS location, device status, and store location history timeline
 export const updateTelemetry = mutation({
   args: {
     lat: v.number(),
@@ -194,6 +228,7 @@ export const updateTelemetry = mutation({
     networkStatus: v.string(),
     isEmergency: v.boolean(),
     locationName: v.optional(v.string()),
+    isCrashDetected: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -213,7 +248,7 @@ export const updateTelemetry = mutation({
       .first();
 
     const userName = user.name || user.email || "Family Member";
-    const userAvatar = user.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=d97706&color=ffffff&bold=true`;
+    const userAvatar = user.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=0f172a&color=ffffff&bold=true`;
 
     const telemetryData = {
       userId,
@@ -231,6 +266,7 @@ export const updateTelemetry = mutation({
       ringerMode: args.ringerMode,
       networkStatus: args.networkStatus,
       isEmergency: args.isEmergency,
+      isCrashDetected: args.isCrashDetected || false,
       lastUpdated: Date.now(),
     };
 
@@ -239,5 +275,65 @@ export const updateTelemetry = mutation({
     } else {
       await ctx.db.insert("telemetry", telemetryData);
     }
+
+    // Insert point into locationHistory timeline table
+    await ctx.db.insert("locationHistory", {
+      userId,
+      lat: args.lat,
+      lng: args.lng,
+      locationName: args.locationName,
+      speed: args.speed,
+      timestamp: Date.now(),
+    });
+  },
+});
+
+// Safe Zones & Geofencing Mutations/Queries
+export const getSafeZones = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const membership = await ctx.db
+      .query("familyMembers")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    if (!membership) return [];
+
+    return await ctx.db
+      .query("safeZones")
+      .withIndex("by_family", (q) => q.eq("familyId", membership.familyId))
+      .collect();
+  },
+});
+
+export const addSafeZone = mutation({
+  args: {
+    name: v.string(),
+    lat: v.number(),
+    lng: v.number(),
+    radiusMeters: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const membership = await ctx.db
+      .query("familyMembers")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    if (!membership) throw new Error("Join or create a Circle first to set Safe Zones");
+
+    return await ctx.db.insert("safeZones", {
+      familyId: membership.familyId,
+      name: args.name,
+      lat: args.lat,
+      lng: args.lng,
+      radiusMeters: args.radiusMeters,
+      createdBy: userId,
+    });
   },
 });

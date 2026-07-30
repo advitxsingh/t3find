@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { api } from '../convex/_generated/api';
-import { Battery, Wifi, Navigation, Users, UserPlus, Eye, Bell, BellOff, Zap, LogOut, Edit3, KeyRound, RefreshCw, Radio, MapPin } from 'lucide-react';
+import { Battery, Wifi, Navigation, Users, UserPlus, Eye, Bell, BellOff, Zap, LogOut, Edit3, KeyRound, RefreshCw, Radio, MapPin, Volume2, ShieldCheck } from 'lucide-react';
 import { MapView } from './components/MapView';
 import { AuthForm } from './components/AuthForm';
 import { FamilySetupModal } from './components/FamilySetupModal';
 import { ProfileEditModal } from './components/ProfileEditModal';
+import { SafeZoneModal } from './components/SafeZoneModal';
 import { Device } from '@capacitor/device';
 import { registerPlugin } from '@capacitor/core';
 import type { UserLocation } from './types';
@@ -42,12 +43,16 @@ export function App() {
   const myFamily = useQuery(api.telemetry.getMyFamily);
   const dbFamilyMesh = useQuery(api.telemetry.getFamilyMesh);
   const updateTelemetryMutation = useMutation(api.telemetry.updateTelemetry);
+  const triggerRemoteSirenMutation = useMutation(api.telemetry.triggerRemoteSiren);
+  const triggerCrashAlertMutation = useMutation(api.telemetry.triggerCrashAlert);
 
   const [focusedUser, setFocusedUser] = useState<UserLocation | null>(null);
   const [showFamilyModal, setShowFamilyModal] = useState<boolean>(false);
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
+  const [showSafeZoneModal, setShowSafeZoneModal] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastSyncedTime, setLastSyncedTime] = useState<string>('Just now');
+
 
   // Local device telemetry state
   const [localTelemetry, setLocalTelemetry] = useState<{
@@ -73,6 +78,37 @@ export function App() {
     isEmergency: false,
     networkStatus: 'Wi-Fi / Cellular',
   });
+
+  // Hardware Accelerometer Crash & Hard Impact Detection Listener
+  useEffect(() => {
+    let lastAccel = { x: 0, y: 0, z: 0 };
+    const handleMotion = (event: DeviceMotionEvent) => {
+      const acc = event.accelerationIncludingGravity;
+      if (!acc || acc.x === null || acc.y === null || acc.z === null) return;
+
+      const deltaX = Math.abs(acc.x - lastAccel.x);
+      const deltaY = Math.abs(acc.y - lastAccel.y);
+      const deltaZ = Math.abs(acc.z - lastAccel.z);
+      const totalImpactG = (deltaX + deltaY + deltaZ) / 9.8;
+
+      // High Impact Threshold (> 4.5G force impact)
+      if (totalImpactG > 4.5) {
+        console.warn('CRASH DETECTED! G-Force Impact:', totalImpactG);
+        triggerCrashAlertMutation({ isCrash: true }).catch(console.error);
+      }
+
+      lastAccel = { x: acc.x, y: acc.y, z: acc.z };
+    };
+
+    if (window.DeviceMotionEvent) {
+      window.addEventListener('devicemotion', handleMotion);
+    }
+    return () => {
+      if (window.DeviceMotionEvent) {
+        window.removeEventListener('devicemotion', handleMotion);
+      }
+    };
+  }, [triggerCrashAlertMutation]);
 
   // Query Network API (detect Wi-Fi vs Cellular Network Connection)
   const getNetworkState = (): string => {
@@ -104,7 +140,6 @@ export function App() {
         currentCharging = !!info.isCharging;
       }
     } catch (e) {
-      // Fallback to Web Battery API if running in browser
       if ('getBattery' in navigator) {
         try {
           const battery: any = await (navigator as any).getBattery();
@@ -256,6 +291,8 @@ export function App() {
     ringerMode: t.ringerMode,
     networkStatus: t.networkStatus,
     isEmergency: t.isEmergency,
+    isSirenActive: t.isSirenActive,
+    isCrashDetected: t.isCrashDetected,
     lastUpdated: t.lastUpdated,
     guardiansCount: (dbFamilyMesh || []).length,
   }));
@@ -276,6 +313,8 @@ export function App() {
     ringerMode: localTelemetry.ringerMode,
     networkStatus: localTelemetry.networkStatus,
     isEmergency: localTelemetry.isEmergency,
+    isSirenActive: false,
+    isCrashDetected: false,
     lastUpdated: Date.now(),
     guardiansCount: dbUsersList.length || 1,
   };
@@ -292,7 +331,14 @@ export function App() {
     }).catch(console.error);
   };
 
-
+  const handleTriggerSiren = async (targetUserId: string) => {
+    try {
+      await triggerRemoteSirenMutation({ targetUserId: targetUserId as any, active: true });
+      alert('🔊 Remote Siren signal transmitted! Target phone will sound beacon at maximum volume.');
+    } catch (e: any) {
+      alert(e.message || 'Siren trigger failed');
+    }
+  };
 
   const activeTargetUser = focusedUser || currentUser;
 
@@ -324,7 +370,27 @@ export function App() {
         </div>
 
         {/* User Controls & Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Safe Zones Button */}
+          <button
+            onClick={() => setShowSafeZoneModal(true)}
+            style={{
+              backgroundColor: 'var(--bg-subtle)',
+              color: 'var(--color-safe)',
+              border: '2px solid var(--border-dark)',
+              padding: '6px 10px',
+              fontSize: '11px',
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              cursor: 'pointer',
+              boxShadow: 'var(--shadow-sm)'
+            }}
+          >
+            <ShieldCheck size={14} /> Zones
+          </button>
+
           {/* Manual Refresh Button */}
           <button
             onClick={handleForceRefresh}
@@ -475,17 +541,41 @@ export function App() {
               </span>
             </div>
 
-            <button
-              onClick={handleToggleSOS}
-              className={`sos-hero-ring ${currentUser.isEmergency ? 'active' : ''}`}
-              style={{
-                backgroundColor: currentUser.isEmergency ? 'var(--color-emergency)' : 'var(--accent-primary)',
-                fontSize: '15px',
-                fontWeight: 900
-              }}
-            >
-              {currentUser.isEmergency ? 'STOP' : 'SOS'}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {/* Trigger Siren Action Button */}
+              {activeTargetUser.userId !== currentUser.userId && (
+                <button
+                  onClick={() => handleTriggerSiren(activeTargetUser.userId)}
+                  style={{
+                    backgroundColor: 'var(--accent-primary)',
+                    color: '#ffffff',
+                    border: '2px solid var(--border-dark)',
+                    padding: '8px 12px',
+                    fontSize: '12px',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    boxShadow: 'var(--shadow-sm)',
+                  }}
+                >
+                  <Volume2 size={15} /> Siren
+                </button>
+              )}
+
+              <button
+                onClick={handleToggleSOS}
+                className={`sos-hero-ring ${currentUser.isEmergency ? 'active' : ''}`}
+                style={{
+                  backgroundColor: currentUser.isEmergency ? 'var(--color-emergency)' : 'var(--accent-primary)',
+                  fontSize: '15px',
+                  fontWeight: 900
+                }}
+              >
+                {currentUser.isEmergency ? 'STOP' : 'SOS'}
+              </button>
+            </div>
           </div>
 
           {/* Reverse Geocoded Full Location Address Bar */}
@@ -667,6 +757,7 @@ export function App() {
       {/* Modals */}
       {showFamilyModal && <FamilySetupModal onClose={() => setShowFamilyModal(false)} />}
       {showProfileModal && <ProfileEditModal currentName={currentUser.name} currentAvatar={currentUser.avatar} onClose={() => setShowProfileModal(false)} />}
+      {showSafeZoneModal && <SafeZoneModal onClose={() => setShowSafeZoneModal(false)} currentLat={currentUser.lat} currentLng={currentUser.lng} />}
     </div>
   );
 }

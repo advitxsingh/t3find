@@ -13,8 +13,18 @@ export interface UserLocation {
   ringerMode: 'Normal' | 'Silent' | 'Vibrate';
   networkStatus: string;
   isEmergency: boolean;
+  isSirenActive?: boolean;
+  isCrashDetected?: boolean;
   lastUpdated: number;
   guardiansCount: number;
+}
+
+export interface SafeZone {
+  _id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  radiusMeters: number;
 }
 
 export interface GuardianContact {
