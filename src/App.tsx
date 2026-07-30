@@ -7,8 +7,12 @@ import { MapView } from './components/MapView';
 import { AuthForm } from './components/AuthForm';
 import { FamilySetupModal } from './components/FamilySetupModal';
 import { ProfileEditModal } from './components/ProfileEditModal';
+import { Device } from '@capacitor/device';
+import { registerPlugin } from '@capacitor/core';
 import type { UserLocation } from './types';
 import './App.css';
+
+const RingerPlugin = registerPlugin<{ getRingerMode: () => Promise<{ ringerMode: 'Normal' | 'Silent' | 'Vibrate' }> }>('RingerPlugin');
 
 // Reverse Geocoding helper function using Nominatim OpenStreetMap API
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
@@ -92,14 +96,35 @@ export function App() {
     let currentBattery = localTelemetry.batteryLevel;
     let currentCharging = localTelemetry.isCharging;
 
-    if ('getBattery' in navigator) {
-      try {
-        const battery: any = await (navigator as any).getBattery();
-        currentBattery = Math.round(battery.level * 100);
-        currentCharging = battery.charging;
-      } catch (e) {
-        console.log('Battery API fallback');
+    // 1. Try Native Capacitor Device API first (works inside Android APK)
+    try {
+      const info = await Device.getBatteryInfo();
+      if (info.batteryLevel !== undefined && info.batteryLevel !== null) {
+        currentBattery = Math.round(info.batteryLevel * 100);
+        currentCharging = !!info.isCharging;
       }
+    } catch (e) {
+      // Fallback to Web Battery API if running in browser
+      if ('getBattery' in navigator) {
+        try {
+          const battery: any = await (navigator as any).getBattery();
+          currentBattery = Math.round(battery.level * 100);
+          currentCharging = battery.charging;
+        } catch (e2) {
+          console.log('Battery API fallback');
+        }
+      }
+    }
+
+    // 2. Query Native Android Hardware Ringer Mode (Normal / Silent / Vibrate)
+    let currentRinger = localTelemetry.ringerMode;
+    try {
+      const res = await RingerPlugin.getRingerMode();
+      if (res && res.ringerMode) {
+        currentRinger = res.ringerMode;
+      }
+    } catch (e) {
+      console.log('Ringer native query fallback');
     }
 
     const currentNetwork = getNetworkState();
@@ -119,6 +144,7 @@ export function App() {
             speed: pos.coords.speed,
             batteryLevel: currentBattery,
             isCharging: currentCharging,
+            ringerMode: currentRinger,
             networkStatus: currentNetwork,
           };
 
@@ -266,17 +292,7 @@ export function App() {
     }).catch(console.error);
   };
 
-  const handleToggleRingerMode = () => {
-    const modes: ('Normal' | 'Silent' | 'Vibrate')[] = ['Normal', 'Silent', 'Vibrate'];
-    const nextIdx = (modes.indexOf(currentUser.ringerMode) + 1) % modes.length;
-    const nextMode = modes[nextIdx];
-    setLocalTelemetry((prev) => ({ ...prev, ringerMode: nextMode }));
-    updateTelemetryMutation({
-      ...localTelemetry,
-      ringerMode: nextMode,
-      heading: 0,
-    }).catch(console.error);
-  };
+
 
   const activeTargetUser = focusedUser || currentUser;
 
@@ -526,11 +542,8 @@ export function App() {
               </div>
             </div>
 
-            {/* Sound Profile / Ringer Telemetry */}
-            <div 
-              onClick={activeTargetUser.userId === currentUser.userId ? handleToggleRingerMode : undefined}
-              style={{ display: 'flex', flexDirection: 'column', gap: '4px', cursor: activeTargetUser.userId === currentUser.userId ? 'pointer' : 'default' }}
-            >
+            {/* Sound Profile / Ringer Telemetry (Automated Hardware Read) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '5px' }}>
                 {activeTargetUser.ringerMode === 'Silent' ? <BellOff size={14} style={{ color: 'var(--color-emergency)' }} /> : <Bell size={14} />} SOUND PROFILE
               </span>
