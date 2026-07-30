@@ -133,7 +133,6 @@ export function App() {
   // Manual Force Refresh Handler
   const handleForceRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    requestCircleSyncMutation().catch(console.error);
     
     let currentBattery = localTelemetry.batteryLevel;
     let currentCharging = localTelemetry.isCharging;
@@ -541,7 +540,10 @@ export function App() {
 
           {/* Manual Refresh Button */}
           <button
-            onClick={handleForceRefresh}
+            onClick={() => {
+              requestCircleSyncMutation().catch(console.error);
+              handleForceRefresh();
+            }}
             disabled={isRefreshing}
             style={{
               backgroundColor: 'var(--bg-subtle)',
