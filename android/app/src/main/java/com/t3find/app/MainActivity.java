@@ -1,5 +1,6 @@
 package com.t3find.app;
 
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -104,16 +105,35 @@ class RingerPlugin extends Plugin {
     @PluginMethod
     public void getRingerMode(PluginCall call) {
         try {
-            AudioManager audioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
-            int mode = audioManager.getRingerMode();
-            int streamVolume = audioManager.getStreamVolume(AudioManager.STREAM_RING);
+            Context context = getContext();
+            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+            int mode = audioManager != null ? audioManager.getRingerMode() : AudioManager.RINGER_MODE_NORMAL;
+            int ringVol = audioManager != null ? audioManager.getStreamVolume(AudioManager.STREAM_RING) : 1;
+            boolean isMuted = audioManager != null && (
+                audioManager.isStreamMute(AudioManager.STREAM_RING) || 
+                audioManager.isStreamMute(AudioManager.STREAM_NOTIFICATION)
+            );
+
+            // Check Do Not Disturb (DND) status
+            boolean isDndActive = false;
+            if (notificationManager != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                int filter = notificationManager.getCurrentInterruptionFilter();
+                if (filter == NotificationManager.INTERRUPTION_FILTER_NONE ||
+                    filter == NotificationManager.INTERRUPTION_FILTER_ALARMS ||
+                    filter == NotificationManager.INTERRUPTION_FILTER_PRIORITY) {
+                    isDndActive = true;
+                }
+            }
+
             String ringerStatus = "Normal";
 
-            if (mode == AudioManager.RINGER_MODE_SILENT || streamVolume == 0) {
-                ringerStatus = "Silent";
-            } else if (mode == AudioManager.RINGER_MODE_VIBRATE) {
+            if (mode == AudioManager.RINGER_MODE_VIBRATE) {
                 ringerStatus = "Vibrate";
-            } else if (mode == AudioManager.RINGER_MODE_NORMAL) {
+            } else if (mode == AudioManager.RINGER_MODE_SILENT || isDndActive || isMuted || ringVol == 0) {
+                ringerStatus = "Silent";
+            } else {
                 ringerStatus = "Normal";
             }
 
