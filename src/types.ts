@@ -15,6 +15,8 @@ export interface UserLocation {
   isEmergency: boolean;
   isSirenActive?: boolean;
   isCrashDetected?: boolean;
+  sosAudioUrl?: string;
+  isLowBatteryWarning?: boolean;
   lastUpdated: number;
   guardiansCount: number;
 }

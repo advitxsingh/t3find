@@ -41,6 +41,8 @@ export default defineSchema({
     isSirenActive: v.optional(v.boolean()), // Remote Siren Trigger
     isCrashDetected: v.optional(v.boolean()), // Crash/Impact Sensor Detection
     requestRefreshPing: v.optional(v.number()), // Force remote refresh ping timestamp
+    sosAudioUrl: v.optional(v.string()), // 5-Second Voice Recording on SOS
+    isLowBatteryWarning: v.optional(v.boolean()), // Low-Battery Pre-Shutdown Warning (<15%)
     lastUpdated: v.number(),
   })
     .index("by_user", ["userId"])

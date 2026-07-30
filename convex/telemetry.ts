@@ -262,6 +262,8 @@ export const updateTelemetry = mutation({
     isEmergency: v.boolean(),
     locationName: v.optional(v.string()),
     isCrashDetected: v.optional(v.boolean()),
+    sosAudioUrl: v.optional(v.string()),
+    isLowBatteryWarning: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -300,6 +302,8 @@ export const updateTelemetry = mutation({
       networkStatus: args.networkStatus,
       isEmergency: args.isEmergency,
       isCrashDetected: args.isCrashDetected || false,
+      sosAudioUrl: args.sosAudioUrl !== undefined ? args.sosAudioUrl : existing?.sosAudioUrl,
+      isLowBatteryWarning: args.isLowBatteryWarning !== undefined ? args.isLowBatteryWarning : existing?.isLowBatteryWarning,
       lastUpdated: Date.now(),
     };
 

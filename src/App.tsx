@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { api } from '../convex/_generated/api';
-import { Battery, Wifi, Navigation, Users, UserPlus, Eye, Bell, BellOff, Zap, LogOut, Edit3, KeyRound, RefreshCw, Radio, MapPin, Volume2, ShieldCheck, Download, Sparkles } from 'lucide-react';
+import { Battery, Wifi, Navigation, Users, UserPlus, Eye, Bell, BellOff, Zap, LogOut, Edit3, KeyRound, RefreshCw, Radio, MapPin, Volume2, ShieldCheck, Download, Sparkles, Mic, BatteryCharging } from 'lucide-react';
 import { MapView } from './components/MapView';
 import { AuthForm } from './components/AuthForm';
 import { FamilySetupModal } from './components/FamilySetupModal';
@@ -68,6 +68,56 @@ export function App() {
   const [showSafeZoneModal, setShowSafeZoneModal] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [nowMs, setNowMs] = useState<number>(Date.now());
+  const isRecordingAudioRef = useRef<boolean>(false);
+  const isLowBatteryWarningSentRef = useRef<boolean>(false);
+
+  // Record 5-second voice audio snippet on SOS trigger
+  const handleRecordAndUploadSOSAudio = async () => {
+    if (isRecordingAudioRef.current) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+
+    try {
+      isRecordingAudioRef.current = true;
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      const audioChunks: Blob[] = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64Audio = reader.result as string;
+          updateTelemetryMutation({
+            ...localTelemetry,
+            isEmergency: true,
+            sosAudioUrl: base64Audio,
+            heading: 0,
+          }).catch(console.error);
+        };
+        reader.readAsDataURL(audioBlob);
+        isRecordingAudioRef.current = false;
+      };
+
+      mediaRecorder.start();
+
+      // Stop recording automatically after 5 seconds
+      setTimeout(() => {
+        if (mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+      }, 5000);
+    } catch (err) {
+      console.log('Audio recording error/permission:', err);
+      isRecordingAudioRef.current = false;
+    }
+  };
 
   // Live ticker to update relative sync time labels ("Just now", "12s ago", "2m ago") in real time
   useEffect(() => {
@@ -347,8 +397,14 @@ export function App() {
             // Throttle database writes to once every 30 seconds to prevent continuous syncing
             if (now - lastDbUpdate > 30000) {
               lastDbUpdate = now;
+              const isLowBat = updated.batteryLevel !== null && updated.batteryLevel <= 15 && !updated.isCharging;
+              if (isLowBat) {
+                isLowBatteryWarningSentRef.current = true;
+              }
+
               updateTelemetryMutation({
                 ...updated,
+                isLowBatteryWarning: isLowBat || isLowBatteryWarningSentRef.current,
                 heading: 0,
               }).catch(console.error);
             }
@@ -441,6 +497,10 @@ export function App() {
       isEmergency: nextEmergencyState,
       heading: 0,
     }).catch(console.error);
+
+    if (nextEmergencyState) {
+      handleRecordAndUploadSOSAudio();
+    }
   };
 
   const handleTriggerSiren = async (targetUserId: string) => {
@@ -753,6 +813,54 @@ export function App() {
               </button>
             </div>
           </div>
+
+          {/* 🎙️ Emergency SOS 5-Second Voice Recording Player */}
+          {activeTargetUser.sosAudioUrl && (
+            <div
+              style={{
+                backgroundColor: '#fef2f2',
+                border: '2px solid var(--color-emergency)',
+                padding: '10px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                boxShadow: 'var(--shadow-sm)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '11px', fontWeight: 900, color: 'var(--color-emergency)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Mic size={14} /> 🎙️ SOS EMERGENCY AUDIO SNIPPET (5s)
+                </span>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>Recorded on SOS</span>
+              </div>
+              <audio controls src={activeTargetUser.sosAudioUrl} style={{ width: '100%', height: '36px', marginTop: '2px' }} />
+            </div>
+          )}
+
+          {/* 🪫 Critical Low Battery Pre-Shutdown Warning Banner */}
+          {(activeTargetUser.isLowBatteryWarning || (activeTargetUser.batteryLevel !== null && activeTargetUser.batteryLevel <= 15 && !activeTargetUser.isCharging)) && (
+            <div
+              style={{
+                backgroundColor: '#fffbeb',
+                border: '2px solid #f59e0b',
+                padding: '10px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                boxShadow: 'var(--shadow-sm)',
+              }}
+            >
+              <BatteryCharging size={22} style={{ color: '#f59e0b', flexShrink: 0 }} />
+              <div>
+                <span style={{ fontSize: '12px', fontWeight: 900, color: '#b45309', display: 'block' }}>
+                  🪫 CRITICAL LOW BATTERY PRE-SHUTDOWN ({activeTargetUser.batteryLevel !== null ? `${activeTargetUser.batteryLevel}%` : '<15%'})
+                </span>
+                <span style={{ fontSize: '10px', color: '#92400e', fontWeight: 600 }}>
+                  Last known high-accuracy GPS location pinned before device powers off.
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Reverse Geocoded Full Location Address Bar */}
           <div
