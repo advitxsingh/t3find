@@ -72,11 +72,11 @@ export function App() {
     isEmergency: boolean;
     networkStatus: string;
   }>({
-    lat: 0,
-    lng: 0,
-    locationName: 'Getting location...',
-    accuracy: 0,
-    speed: null,
+    lat: 37.7749,
+    lng: -122.4194,
+    locationName: 'Union Square, San Francisco, CA 94108',
+    accuracy: 5,
+    speed: 0.0,
     batteryLevel: null,
     isCharging: false,
     ringerMode: 'Normal',

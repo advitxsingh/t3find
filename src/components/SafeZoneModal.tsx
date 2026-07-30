@@ -42,8 +42,8 @@ export function SafeZoneModal({ onClose, currentLat, currentLng }: SafeZoneModal
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [targetCoords, setTargetCoords] = useState<{ lat: number; lng: number }>({
-    lat: currentLat || 12.793,
-    lng: currentLng || 77.702,
+    lat: currentLat || 37.7749,
+    lng: currentLng || -122.4194,
   });
   const [resolvedAddress, setResolvedAddress] = useState<string>('Using Live Location');
 
@@ -57,8 +57,8 @@ export function SafeZoneModal({ onClose, currentLat, currentLng }: SafeZoneModal
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    const initialLat = targetCoords.lat || 12.793;
-    const initialLng = targetCoords.lng || 77.702;
+    const initialLat = targetCoords.lat || 37.7749;
+    const initialLng = targetCoords.lng || -122.4194;
 
     const map = L.map(mapContainerRef.current, {
       center: [initialLat, initialLng],
@@ -335,7 +335,7 @@ export function SafeZoneModal({ onClose, currentLat, currentLng }: SafeZoneModal
             <input
               type="text"
               required
-              placeholder="e.g. Narayana PU College, Home, Gym"
+              placeholder="e.g. Stanford Campus, Home, Gym"
               value={name}
               onChange={(e) => setName(e.target.value)}
               style={{
@@ -359,7 +359,7 @@ export function SafeZoneModal({ onClose, currentLat, currentLng }: SafeZoneModal
             <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
               <input
                 type="text"
-                placeholder="Search college, campus, Chandapura, Suryanagar..."
+                placeholder="Search Union Square, Stanford, Market St SF..."
                 value={addressInput}
                 onChange={(e) => setAddressInput(e.target.value)}
                 onKeyDown={(e) => {

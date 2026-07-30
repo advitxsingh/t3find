@@ -133,9 +133,9 @@ export default function LandingPage() {
           </div>
           <div className="land-preview-members">
             {[
-              { name: 'Dad', emoji: '👨', bat: 82, loc: 'Sector 18, Noida', ringer: 'Normal', charging: false },
-              { name: 'Mom', emoji: '👩', bat: 41, loc: 'Connaught Place, Delhi', ringer: 'Silent', charging: true },
-              { name: 'You', emoji: '🧑', bat: 67, loc: 'Green Park, Delhi', ringer: 'Vibrate', charging: false },
+              { name: 'Alex (Dad)', emoji: '👨', bat: 82, loc: 'Financial District, San Francisco, CA', ringer: 'Normal', charging: false },
+              { name: 'Sarah (Mom)', emoji: '👩', bat: 41, loc: 'Union Square, San Francisco, CA', ringer: 'Silent', charging: true },
+              { name: 'You', emoji: '🧑', bat: 67, loc: 'Mission District, San Francisco, CA', ringer: 'Vibrate', charging: false },
             ].map((m) => (
               <div className="land-preview-member" key={m.name}>
                 <div className="land-preview-avatar">{m.emoji}</div>
