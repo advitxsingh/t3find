@@ -19,6 +19,7 @@ export function MapView({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const circleRef = useRef<L.Circle | null>(null);
+  const lastSelectedUserIdRef = useRef<string | null>(null);
 
   // Initialize Map
   useEffect(() => {
@@ -150,9 +151,14 @@ export function MapView({
       }
     });
 
-    if (allUsers.length > 0) {
-      const bounds = L.latLngBounds(allUsers.map((u) => [u.lat, u.lng]));
-      map.fitBounds(bounds, { padding: [70, 70], maxZoom: 15, animate: true });
+    // Auto-fit bounds only when target selection changes or on initial render
+    const targetUserId = targetUser.userId;
+    if (targetUserId !== lastSelectedUserIdRef.current) {
+      lastSelectedUserIdRef.current = targetUserId;
+      if (allUsers.length > 0) {
+        const bounds = L.latLngBounds(allUsers.map((u) => [u.lat, u.lng]));
+        map.fitBounds(bounds, { padding: [70, 70], maxZoom: 15, animate: true });
+      }
     }
   }, [allUsers, currentUser, selectedUser]);
 
