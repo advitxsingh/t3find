@@ -3,15 +3,18 @@ package com.t3find.app;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.os.BatteryManager;
 import android.os.Build;
+import android.os.IBinder;
 import android.os.PowerManager;
 import android.net.Uri;
 import android.provider.Settings;
+import androidx.core.app.NotificationCompat;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
@@ -30,6 +33,14 @@ public class MainActivity extends BridgeActivity {
 
         // Auto request Battery Saver Exemption prompt on launch
         requestIgnoreBatteryOptimizations();
+
+        // Start Persistent Foreground Location Service
+        Intent serviceIntent = new Intent(this, PersistentLocationService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent);
+        } else {
+            startService(serviceIntent);
+        }
     }
 
     private void requestIgnoreBatteryOptimizations() {
@@ -43,6 +54,48 @@ public class MainActivity extends BridgeActivity {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+            }
+        }
+    }
+}
+
+class PersistentLocationService extends Service {
+    private static final String CHANNEL_ID = "t3find_persistent_mesh";
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        createNotificationChannel();
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("T3Find Circle Guardian")
+                .setContentText("Active background mesh protection running.")
+                .setSmallIcon(android.R.drawable.ic_menu_compass)
+                .setPriority(NotificationCompat.PRIORITY_MIN)
+                .setOngoing(true)
+                .build();
+        startForeground(1001, notification);
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        return START_STICKY; // Prevents Android OS from killing process when swiped away
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "T3Find Persistent Protection",
+                    NotificationManager.IMPORTANCE_MIN
+            );
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager != null) {
+                manager.createNotificationChannel(channel);
             }
         }
     }
