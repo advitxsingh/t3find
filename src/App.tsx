@@ -464,11 +464,7 @@ export function App() {
           </div>
           <button
             onClick={() => {
-              if (latestRelease.downloadUrl) {
-                window.open(latestRelease.downloadUrl, '_blank');
-              } else {
-                window.location.reload();
-              }
+              window.location.reload();
             }}
             style={{
               backgroundColor: '#ffffff',
