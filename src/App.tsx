@@ -301,16 +301,18 @@ export function App() {
     return () => clearInterval(backgroundSyncInterval);
   }, [user?._id, handleForceRefresh]);
 
-  // Watch GPS location efficiently (triggers only when moving > 15 meters)
+  // Watch GPS location efficiently (triggers DB updates at most once every 15 seconds)
   useEffect(() => {
     if (user && 'geolocation' in navigator) {
       let lastAddressLat = 0;
       let lastAddressLng = 0;
+      let lastDbUpdate = 0;
 
       const watchId = navigator.geolocation.watchPosition(
         async (pos) => {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
+          const now = Date.now();
 
           // Only do heavy address reverse-geocoding if moved significantly (> 0.0002 deg (~20m))
           let addressName = localTelemetry.locationName;
@@ -332,10 +334,16 @@ export function App() {
               speed: pos.coords.speed,
               networkStatus: currentNetwork,
             };
-            updateTelemetryMutation({
-              ...updated,
-              heading: 0,
-            }).catch(console.error);
+
+            // Throttle database writes to once every 15 seconds to prevent continuous syncing
+            if (now - lastDbUpdate > 15000) {
+              lastDbUpdate = now;
+              updateTelemetryMutation({
+                ...updated,
+                heading: 0,
+              }).catch(console.error);
+            }
+
             return updated;
           });
           setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
