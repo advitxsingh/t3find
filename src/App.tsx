@@ -436,7 +436,7 @@ export function App() {
 
   const activeTargetUser = focusedUser || currentUser;
 
-  const hasNewUpdate = !!latestRelease;
+  const hasNewUpdate = !!(latestRelease && latestRelease.version && latestRelease.version !== CURRENT_APP_VERSION);
 
   return (
     <div className="app-container">
