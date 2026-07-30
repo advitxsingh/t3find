@@ -46,6 +46,7 @@ export function App() {
   const updateTelemetryMutation = useMutation(api.telemetry.updateTelemetry);
   const triggerRemoteSirenMutation = useMutation(api.telemetry.triggerRemoteSiren);
   const triggerCrashAlertMutation = useMutation(api.telemetry.triggerCrashAlert);
+  const requestCircleSyncMutation = useMutation(api.telemetry.requestCircleSync);
 
   const [focusedUser, setFocusedUser] = useState<UserLocation | null>(null);
   const [showFamilyModal, setShowFamilyModal] = useState<boolean>(false);
@@ -129,6 +130,7 @@ export function App() {
   // Manual Force Refresh Handler
   const handleForceRefresh = useCallback(async () => {
     setIsRefreshing(true);
+    requestCircleSyncMutation().catch(console.error);
     
     let currentBattery = localTelemetry.batteryLevel;
     let currentCharging = localTelemetry.isCharging;
@@ -273,6 +275,16 @@ export function App() {
 
     loadInitialDeviceState();
   }, []);
+
+  // Listen to remote circle refresh pings from family members tapping "Sync"
+  const myDbRecord = (dbFamilyMesh || []).find((t) => t.userId === user?._id);
+  const remotePingTimestamp = myDbRecord?.requestRefreshPing;
+
+  useEffect(() => {
+    if (remotePingTimestamp) {
+      handleForceRefresh();
+    }
+  }, [remotePingTimestamp]);
 
   // Heartbeat background sync interval (runs every 30 seconds)
   useEffect(() => {

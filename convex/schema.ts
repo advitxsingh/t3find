@@ -40,6 +40,7 @@ export default defineSchema({
     isEmergency: v.boolean(),
     isSirenActive: v.optional(v.boolean()), // Remote Siren Trigger
     isCrashDetected: v.optional(v.boolean()), // Crash/Impact Sensor Detection
+    requestRefreshPing: v.optional(v.number()), // Force remote refresh ping timestamp
     lastUpdated: v.number(),
   })
     .index("by_user", ["userId"])

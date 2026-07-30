@@ -194,6 +194,39 @@ export const triggerRemoteSiren = mutation({
   },
 });
 
+// Request Remote Sync Ping Mutation (Signals circle members' devices to immediately transmit fresh location & battery)
+export const requestCircleSync = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const membership = await ctx.db
+      .query("familyMembers")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    if (!membership) return;
+
+    const familyMemberships = await ctx.db
+      .query("familyMembers")
+      .withIndex("by_family", (q) => q.eq("familyId", membership.familyId))
+      .collect();
+
+    const now = Date.now();
+    for (const member of familyMemberships) {
+      const memberTel = await ctx.db
+        .query("telemetry")
+        .withIndex("by_user", (q) => q.eq("userId", member.userId))
+        .first();
+
+      if (memberTel) {
+        await ctx.db.patch(memberTel._id, { requestRefreshPing: now });
+      }
+    }
+  },
+});
+
 // Trigger Impact / Crash Alert
 export const triggerCrashAlert = mutation({
   args: {
