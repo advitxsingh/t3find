@@ -232,6 +232,46 @@ export function App() {
     }
   }, [user?._id, localTelemetry, updateTelemetryMutation]);
 
+  // Query Native Battery and Ringer immediately on initial app load
+  useEffect(() => {
+    async function loadInitialDeviceState() {
+      try {
+        const nativeBat = await NativeBatteryPlugin.getNativeBatteryInfo();
+        if (nativeBat && nativeBat.batteryLevel !== undefined) {
+          setLocalTelemetry((prev) => ({
+            ...prev,
+            batteryLevel: nativeBat.batteryLevel,
+            isCharging: nativeBat.isCharging,
+          }));
+        }
+      } catch (e) {
+        // Fallback to Capacitor Device API
+        try {
+          const info = await Device.getBatteryInfo();
+          if (info.batteryLevel !== undefined && info.batteryLevel !== null) {
+            setLocalTelemetry((prev) => ({
+              ...prev,
+              batteryLevel: Math.round((info.batteryLevel || 0) * 100),
+              isCharging: !!info.isCharging,
+            }));
+          }
+        } catch (e2) {}
+      }
+
+      try {
+        const ringer = await RingerPlugin.getRingerMode();
+        if (ringer && ringer.ringerMode) {
+          setLocalTelemetry((prev) => ({
+            ...prev,
+            ringerMode: ringer.ringerMode,
+          }));
+        }
+      } catch (eRinger) {}
+    }
+
+    loadInitialDeviceState();
+  }, []);
+
   // Heartbeat background sync interval (runs every 15 seconds)
   useEffect(() => {
     if (!user) return;
