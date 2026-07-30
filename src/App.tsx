@@ -282,9 +282,11 @@ export function App() {
   // Listen to remote circle refresh pings from family members tapping "Sync"
   const myDbRecord = (dbFamilyMesh || []).find((t) => t.userId === user?._id);
   const remotePingTimestamp = myDbRecord?.requestRefreshPing;
+  const lastHandledPingRef = useState<{ time: number }>({ time: 0 })[0];
 
   useEffect(() => {
-    if (remotePingTimestamp) {
+    if (remotePingTimestamp && remotePingTimestamp > lastHandledPingRef.time) {
+      lastHandledPingRef.time = remotePingTimestamp;
       handleForceRefresh();
     }
   }, [remotePingTimestamp]);
