@@ -14,6 +14,7 @@ import type { UserLocation } from './types';
 import './App.css';
 
 const RingerPlugin = registerPlugin<{ getRingerMode: () => Promise<{ ringerMode: 'Normal' | 'Silent' | 'Vibrate' }> }>('RingerPlugin');
+const NativeBatteryPlugin = registerPlugin<{ getNativeBatteryInfo: () => Promise<{ batteryLevel: number; isCharging: boolean }> }>('NativeBatteryPlugin');
 
 // Reverse Geocoding helper function using Nominatim OpenStreetMap API
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
@@ -132,21 +133,45 @@ export function App() {
     let currentBattery = localTelemetry.batteryLevel;
     let currentCharging = localTelemetry.isCharging;
 
-    // 1. Try Native Capacitor Device API first (works inside Android APK)
+    // 1. Try Native Java Android BatteryManager Plugin (100% accurate inside APK)
     try {
-      const info = await Device.getBatteryInfo();
-      if (info.batteryLevel !== undefined && info.batteryLevel !== null) {
-        currentBattery = Math.round(info.batteryLevel * 100);
-        currentCharging = !!info.isCharging;
+      const nativeBat = await NativeBatteryPlugin.getNativeBatteryInfo();
+      if (nativeBat && nativeBat.batteryLevel !== undefined) {
+        currentBattery = nativeBat.batteryLevel;
+        currentCharging = nativeBat.isCharging;
+        setLocalTelemetry((prev) => ({
+          ...prev,
+          batteryLevel: currentBattery,
+          isCharging: currentCharging,
+        }));
       }
-    } catch (e) {
-      if ('getBattery' in navigator) {
-        try {
-          const battery: any = await (navigator as any).getBattery();
-          currentBattery = Math.round(battery.level * 100);
-          currentCharging = battery.charging;
-        } catch (e2) {
-          console.log('Battery API fallback');
+    } catch (eNative) {
+      // Fallback to Capacitor Device API
+      try {
+        const info = await Device.getBatteryInfo();
+        if (info.batteryLevel !== undefined && info.batteryLevel !== null) {
+          currentBattery = Math.round(info.batteryLevel * 100);
+          currentCharging = !!info.isCharging;
+          setLocalTelemetry((prev) => ({
+            ...prev,
+            batteryLevel: currentBattery,
+            isCharging: currentCharging,
+          }));
+        }
+      } catch (e) {
+        if ('getBattery' in navigator) {
+          try {
+            const battery: any = await (navigator as any).getBattery();
+            currentBattery = Math.round(battery.level * 100);
+            currentCharging = battery.charging;
+            setLocalTelemetry((prev) => ({
+              ...prev,
+              batteryLevel: currentBattery,
+              isCharging: currentCharging,
+            }));
+          } catch (e2) {
+            console.log('Battery API fallback');
+          }
         }
       }
     }
