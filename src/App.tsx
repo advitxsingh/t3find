@@ -490,49 +490,53 @@ export function App() {
 
       {/* Top Application Header */}
       <header className="app-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: '0 0 auto' }}>
           <img
             src="/img.jpg"
             alt="T3Find Logo"
             style={{
-              width: '36px',
-              height: '36px',
+              width: '32px',
+              height: '32px',
               border: '2px solid var(--border-dark)',
               boxShadow: 'var(--shadow-sm)',
-              objectFit: 'cover'
+              objectFit: 'cover',
+              flexShrink: 0,
             }}
           />
-          <div>
-            <h1 style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-0.6px' }}>
+          <div style={{ minWidth: 0 }}>
+            <h1 style={{ fontSize: '17px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
               T3Find
             </h1>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Radio size={11} style={{ color: 'var(--color-safe)' }} />
-              {myFamily ? `Circle: ${myFamily.name}` : 'Private Mesh'}
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+              <Radio size={10} style={{ color: 'var(--color-safe)', flexShrink: 0 }} />
+              {myFamily ? `${myFamily.name}` : 'Private Mesh'}
             </span>
           </div>
         </div>
 
         {/* User Controls & Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           {/* Safe Zones Button */}
           <button
             onClick={() => setShowSafeZoneModal(true)}
+            title="Safe Zones"
             style={{
               backgroundColor: 'var(--bg-subtle)',
               color: 'var(--color-safe)',
               border: '2px solid var(--border-dark)',
-              padding: '6px 10px',
+              padding: '6px 8px',
               fontSize: '11px',
               fontWeight: 800,
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
+              gap: '3px',
               cursor: 'pointer',
-              boxShadow: 'var(--shadow-sm)'
+              boxShadow: 'var(--shadow-sm)',
+              whiteSpace: 'nowrap',
             }}
           >
-            <ShieldCheck size={14} /> Zones
+            <ShieldCheck size={14} />
+            <span className="header-btn-label">Zones</span>
           </button>
 
           {/* Manual Refresh Button */}
@@ -542,37 +546,42 @@ export function App() {
               handleForceRefresh();
             }}
             disabled={isRefreshing}
+            title="Sync"
             style={{
               backgroundColor: 'var(--bg-subtle)',
               color: 'var(--text-main)',
               border: '2px solid var(--border-dark)',
-              padding: '6px 12px',
+              padding: '6px 8px',
               fontSize: '12px',
               fontWeight: 800,
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '4px',
               cursor: isRefreshing ? 'wait' : 'pointer',
-              boxShadow: 'var(--shadow-sm)'
+              boxShadow: 'var(--shadow-sm)',
+              whiteSpace: 'nowrap',
             }}
           >
             <RefreshCw size={14} style={{ transform: isRefreshing ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s ease' }} />
-            {isRefreshing ? 'Syncing...' : 'Sync'}
+            <span className="header-btn-label">{isRefreshing ? 'Syncing...' : 'Sync'}</span>
           </button>
 
           {myFamily ? (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: 'var(--bg-subtle)',
-              border: '2px solid var(--border-dark)',
-              padding: '5px 10px',
-              fontSize: '11px',
-              fontWeight: 800,
-              boxShadow: 'var(--shadow-sm)'
-            }}>
-              <KeyRound size={13} style={{ color: 'var(--accent-primary)' }} />
+            <div
+              className="header-code"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                backgroundColor: 'var(--bg-subtle)',
+                border: '2px solid var(--border-dark)',
+                padding: '5px 8px',
+                fontSize: '11px',
+                fontWeight: 800,
+                boxShadow: 'var(--shadow-sm)',
+                whiteSpace: 'nowrap',
+              }}>
+              <KeyRound size={12} style={{ color: 'var(--accent-primary)' }} />
               <span style={{ color: 'var(--accent-primary)', letterSpacing: '0.5px' }}>{myFamily.inviteCode}</span>
             </div>
           ) : (
@@ -582,50 +591,55 @@ export function App() {
                 backgroundColor: 'var(--accent-primary)',
                 color: '#ffffff',
                 border: '2px solid var(--border-dark)',
-                padding: '6px 12px',
+                padding: '6px 10px',
                 fontSize: '12px',
                 fontWeight: 800,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                boxShadow: 'var(--shadow-sm)'
+                gap: '4px',
+                boxShadow: 'var(--shadow-sm)',
+                whiteSpace: 'nowrap',
               }}
             >
-              <UserPlus size={14} /> Circle Code
+              <UserPlus size={14} />
+              <span className="header-btn-label">Circle</span>
             </button>
           )}
 
-          <div 
+          <div
             onClick={() => setShowProfileModal(true)}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px', 
-              backgroundColor: 'var(--bg-subtle)', 
+            title="Edit Profile"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              backgroundColor: 'var(--bg-subtle)',
               border: '2px solid var(--border-dark)',
-              padding: '4px 10px', 
+              padding: '4px 8px',
               cursor: 'pointer',
-              boxShadow: 'var(--shadow-sm)'
+              boxShadow: 'var(--shadow-sm)',
+              flexShrink: 0,
             }}
           >
-            <img src={currentUser.avatar} alt={currentUser.name} style={{ width: '26px', height: '26px', objectFit: 'cover' }} />
-            <Edit3 size={13} style={{ color: 'var(--text-muted)' }} />
+            <img src={currentUser.avatar} alt={currentUser.name} style={{ width: '24px', height: '24px', objectFit: 'cover', flexShrink: 0 }} />
+            <Edit3 size={12} style={{ color: 'var(--text-muted)' }} className="header-btn-label" />
           </div>
 
           <button
             onClick={() => signOut()}
+            title="Sign out"
             style={{
               backgroundColor: 'var(--bg-subtle)',
               color: 'var(--text-muted)',
               border: '2px solid var(--border-dark)',
-              padding: '6px 10px',
+              padding: '6px 8px',
               fontSize: '12px',
               fontWeight: 800,
               display: 'flex',
               alignItems: 'center',
               cursor: 'pointer',
-              boxShadow: 'var(--shadow-sm)'
+              boxShadow: 'var(--shadow-sm)',
             }}
           >
             <LogOut size={14} />

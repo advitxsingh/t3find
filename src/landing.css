@@ -28,8 +28,12 @@
 /* Override global body lock when landing page is active */
 body.landing-active {
   overflow: auto !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
   height: auto !important;
   min-height: 100vh !important;
+  max-height: none !important;
+  position: static !important;
 }
 
 /* ── RESET for landing page (override global * rule) ── */

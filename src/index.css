@@ -155,3 +155,22 @@ body {
 .leaflet-tile {
   filter: brightness(0.97) contrast(1.05) saturate(1.1);
 }
+
+/* Header button label — hidden on small phones */
+@media (max-width: 480px) {
+  .header-btn-label {
+    display: none !important;
+  }
+  .header-code {
+    display: none !important;
+  }
+  .app-header {
+    padding: 0 8px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-header h1 {
+    font-size: 15px !important;
+  }
+}
