@@ -72,16 +72,16 @@ export function App() {
     isEmergency: boolean;
     networkStatus: string;
   }>({
-    lat: 28.6139,
-    lng: 77.2090,
-    locationName: 'Connaught Place, New Delhi, Delhi - 110001',
-    accuracy: 8,
-    speed: 0.8,
+    lat: 0,
+    lng: 0,
+    locationName: 'Getting location...',
+    accuracy: 0,
+    speed: null,
     batteryLevel: null,
     isCharging: false,
     ringerMode: 'Normal',
     isEmergency: false,
-    networkStatus: 'Wi-Fi / Cellular',
+    networkStatus: 'Connecting...',
   });
 
   // Hardware Accelerometer Crash & Hard Impact Detection Listener
@@ -290,16 +290,9 @@ export function App() {
     }
   }, [remotePingTimestamp]);
 
-  // Heartbeat background sync interval (runs every 30 seconds)
-  useEffect(() => {
-    if (!user) return;
 
-    const backgroundSyncInterval = setInterval(() => {
-      handleForceRefresh();
-    }, 30000);
-
-    return () => clearInterval(backgroundSyncInterval);
-  }, [user?._id, handleForceRefresh]);
+  // NOTE: No background heartbeat interval — watchPosition handles continuous updates
+  // and handleForceRefresh is only called on manual Sync button tap or remote ping.
 
   // Watch GPS location efficiently (triggers DB updates at most once every 15 seconds)
   useEffect(() => {
