@@ -274,25 +274,36 @@ export function App() {
     loadInitialDeviceState();
   }, []);
 
-  // Heartbeat background sync interval (runs every 15 seconds)
+  // Heartbeat background sync interval (runs every 30 seconds)
   useEffect(() => {
     if (!user) return;
 
     const backgroundSyncInterval = setInterval(() => {
       handleForceRefresh();
-    }, 15000);
+    }, 30000);
 
     return () => clearInterval(backgroundSyncInterval);
   }, [user?._id, handleForceRefresh]);
 
-  // Watch GPS location continuously
+  // Watch GPS location efficiently (triggers only when moving > 15 meters)
   useEffect(() => {
     if (user && 'geolocation' in navigator) {
+      let lastAddressLat = 0;
+      let lastAddressLng = 0;
+
       const watchId = navigator.geolocation.watchPosition(
         async (pos) => {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
-          const addressName = await reverseGeocode(lat, lng);
+
+          // Only do heavy address reverse-geocoding if moved significantly (> 0.0002 deg (~20m))
+          let addressName = localTelemetry.locationName;
+          if (Math.abs(lat - lastAddressLat) > 0.0002 || Math.abs(lng - lastAddressLng) > 0.0002) {
+            addressName = await reverseGeocode(lat, lng);
+            lastAddressLat = lat;
+            lastAddressLng = lng;
+          }
+
           const currentNetwork = getNetworkState();
 
           setLocalTelemetry((prev) => {
@@ -314,7 +325,7 @@ export function App() {
           setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
         },
         (err) => console.log('GPS watch fallback', err),
-        { enableHighAccuracy: true }
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
       );
       return () => navigator.geolocation.clearWatch(watchId);
     }
