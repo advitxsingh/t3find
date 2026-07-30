@@ -65,4 +65,13 @@ export default defineSchema({
     speed: v.union(v.number(), v.null()),
     timestamp: v.number(),
   }).index("by_user_time", ["userId", "timestamp"]),
+
+  // In-App OTA Updates Table
+  appReleases: defineTable({
+    version: v.string(), // e.g. "1.0.5"
+    downloadUrl: v.string(),
+    releaseNotes: v.string(),
+    isMandatory: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_version", ["version"]),
 });

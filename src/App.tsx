@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { api } from '../convex/_generated/api';
-import { Battery, Wifi, Navigation, Users, UserPlus, Eye, Bell, BellOff, Zap, LogOut, Edit3, KeyRound, RefreshCw, Radio, MapPin, Volume2, ShieldCheck } from 'lucide-react';
+import { Battery, Wifi, Navigation, Users, UserPlus, Eye, Bell, BellOff, Zap, LogOut, Edit3, KeyRound, RefreshCw, Radio, MapPin, Volume2, ShieldCheck, Download, Sparkles } from 'lucide-react';
 import { MapView } from './components/MapView';
 import { AuthForm } from './components/AuthForm';
 import { FamilySetupModal } from './components/FamilySetupModal';
@@ -15,6 +15,7 @@ import './App.css';
 
 const RingerPlugin = registerPlugin<{ getRingerMode: () => Promise<{ ringerMode: 'Normal' | 'Silent' | 'Vibrate' }> }>('RingerPlugin');
 const NativeBatteryPlugin = registerPlugin<{ getNativeBatteryInfo: () => Promise<{ batteryLevel: number; isCharging: boolean }> }>('NativeBatteryPlugin');
+const CURRENT_APP_VERSION = "1.0.0";
 
 // Reverse Geocoding helper function using Nominatim OpenStreetMap API
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
@@ -43,6 +44,7 @@ export function App() {
   const user = useQuery(api.telemetry.me);
   const myFamily = useQuery(api.telemetry.getMyFamily);
   const dbFamilyMesh = useQuery(api.telemetry.getFamilyMesh);
+  const latestRelease = useQuery(api.telemetry.getLatestRelease);
   const updateTelemetryMutation = useMutation(api.telemetry.updateTelemetry);
   const triggerRemoteSirenMutation = useMutation(api.telemetry.triggerRemoteSiren);
   const triggerCrashAlertMutation = useMutation(api.telemetry.triggerCrashAlert);
@@ -434,8 +436,59 @@ export function App() {
 
   const activeTargetUser = focusedUser || currentUser;
 
+  const hasNewUpdate = latestRelease && latestRelease.version !== CURRENT_APP_VERSION;
+
   return (
     <div className="app-container">
+      {/* Live OTA In-App Update Notification Banner */}
+      {hasNewUpdate && (
+        <div
+          style={{
+            backgroundColor: 'var(--accent-primary)',
+            color: '#ffffff',
+            padding: '10px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '2px solid var(--border-dark)',
+            fontSize: '12px',
+            fontWeight: 800,
+            zIndex: 999,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Sparkles size={16} />
+            <span>
+              <strong>Update v{latestRelease.version} Available!</strong> {latestRelease.releaseNotes}
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              if (latestRelease.downloadUrl) {
+                window.open(latestRelease.downloadUrl, '_blank');
+              } else {
+                window.location.reload();
+              }
+            }}
+            style={{
+              backgroundColor: '#ffffff',
+              color: 'var(--accent-primary)',
+              border: '2px solid var(--border-dark)',
+              padding: '4px 10px',
+              fontSize: '11px',
+              fontWeight: 900,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <Download size={13} /> Update & Relaunch
+          </button>
+        </div>
+      )}
+
       {/* Top Application Header */}
       <header className="app-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

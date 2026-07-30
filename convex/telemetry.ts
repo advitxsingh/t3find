@@ -370,3 +370,33 @@ export const addSafeZone = mutation({
     });
   },
 });
+
+// OTA In-App Update Queries & Mutations
+export const getLatestRelease = query({
+  args: {},
+  handler: async (ctx) => {
+    const releases = await ctx.db.query("appReleases").order("desc").collect();
+    return releases.length > 0 ? releases[0] : null;
+  },
+});
+
+export const publishRelease = mutation({
+  args: {
+    version: v.string(),
+    downloadUrl: v.string(),
+    releaseNotes: v.string(),
+    isMandatory: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    return await ctx.db.insert("appReleases", {
+      version: args.version,
+      downloadUrl: args.downloadUrl,
+      releaseNotes: args.releaseNotes,
+      isMandatory: args.isMandatory,
+      createdAt: Date.now(),
+    });
+  },
+});
