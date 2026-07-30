@@ -56,6 +56,12 @@ export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
+    // Unlock body scroll for landing page (global CSS locks it for the app)
+    document.body.classList.add('landing-active');
+    return () => document.body.classList.remove('landing-active');
+  }, []);
+
+  useEffect(() => {
     const t = setInterval(() => setTick(n => n + 1), 2000);
     return () => clearInterval(t);
   }, []);
