@@ -39,17 +39,18 @@ jobs:
       - name: Sync Capacitor Android Project
         run: npx cap sync android
 
-      - name: Build Android Debug APK
+      - name: Build Android APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/T3Find.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: T3Find-Android-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: T3Find.apk
+          path: android/app/build/outputs/apk/debug/T3Find.apk
 
       - name: Publish GitHub Release with APK
         uses: softprops/action-gh-release@v2
@@ -58,4 +59,4 @@ jobs:
           tag_name: latest
           name: "T3Find Latest APK Build"
           body: "Official T3Find Android APK package with Background Location Guardian & Native Plugins."
-          files: android/app/build/outputs/apk/debug/app-debug.apk
+          files: android/app/build/outputs/apk/debug/T3Find.apk
