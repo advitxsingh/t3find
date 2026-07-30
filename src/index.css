@@ -83,29 +83,52 @@ body {
   overflow: hidden;
 }
 
-/* Smartphone Layout Fix: Fixed height split with internal scrolling */
+/* Smartphone Layout Fix: Allow natural vertical scrolling on mobile */
 @media (max-width: 900px) {
+  body {
+    overflow-y: auto !important;
+    height: auto !important;
+    min-height: 100dvh !important;
+  }
+
+  .app-container {
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .app-header {
     height: 56px;
     padding: 0 12px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
   }
 
   .workspace-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: 45vh 1fr; /* Map gets 45vh so sidebar diagnostic cards have full scroll room */
-    padding: 0;
-    gap: 0;
-    overflow-y: hidden;
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    padding: 12px !important;
+    gap: 16px !important;
+    overflow: visible !important;
+  }
+
+  .workspace-grid > section {
+    height: 45vh !important;
+    min-height: 300px !important;
+    flex-shrink: 0 !important;
   }
 
   .sidebar-container {
     border-top: 2px solid var(--border-dark) !important;
-    border-left: none !important;
-    box-shadow: none !important;
+    border-left: 2px solid var(--border-dark) !important;
+    box-shadow: var(--shadow-md) !important;
     padding: 16px !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-    max-height: calc(100dvh - 56px - 45vh);
+    overflow-y: visible !important;
+    max-height: none !important;
+    flex: none !important;
   }
 }
 
