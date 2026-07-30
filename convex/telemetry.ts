@@ -371,6 +371,21 @@ export const addSafeZone = mutation({
   },
 });
 
+export const deleteSafeZone = mutation({
+  args: {
+    zoneId: v.id("safeZones"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const zone = await ctx.db.get(args.zoneId);
+    if (!zone) return;
+
+    await ctx.db.delete(args.zoneId);
+  },
+});
+
 // OTA In-App Update Queries & Mutations
 export const getLatestRelease = query({
   args: {},
