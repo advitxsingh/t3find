@@ -7,7 +7,7 @@ import android.media.AudioManager;
 import android.os.BatteryManager;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
-import.getcapacitor.PluginCall;
+import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.JSObject;
@@ -33,7 +33,7 @@ class NativeBatteryPlugin extends Plugin {
 
             int level = batteryStatus != null ? batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) : -1;
             int scale = batteryStatus != null ? batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1) : -1;
-            float batteryPct = level * 100 / (float) scale;
+            float batteryPct = (scale > 0) ? (level * 100 / (float) scale) : 0;
 
             int status = batteryStatus != null ? batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1) : -1;
             boolean isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL;
