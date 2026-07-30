@@ -107,12 +107,19 @@ export default function LandingPage() {
             Launch Web App <span>→</span>
           </a>
           <a
+            href="/t3find.apk"
+            download="t3find.apk"
+            className="land-btn-secondary"
+          >
+            📱 Download Android APK
+          </a>
+          <a
             href="https://github.com/advitxsingh/t3find"
             target="_blank"
             rel="noopener noreferrer"
             className="land-btn-secondary"
           >
-            ⭐ View Source Code (GitHub)
+            ⭐ GitHub
           </a>
         </div>
 
@@ -215,6 +222,14 @@ export default function LandingPage() {
             className="land-btn-secondary"
           >
             📱 Download Android APK
+          </a>
+          <a
+            href="https://github.com/advitxsingh/t3find"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="land-btn-secondary"
+          >
+            ⭐ View Source Code
           </a>
         </div>
       </section>
