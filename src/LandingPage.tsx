@@ -79,7 +79,8 @@ export default function LandingPage() {
         <div className={`land-nav-links ${menuOpen ? 'open' : ''}`}>
           <a href="#features">Features</a>
           <a href="#how">How It Works</a>
-          <a href="#stats">By the Numbers</a>
+          <a href="#stats">Stats</a>
+          <a href="https://github.com/advitxsingh/t3find" target="_blank" rel="noopener noreferrer">⭐ GitHub</a>
           <a href="/app" className="land-nav-cta">Open App →</a>
         </div>
         <button className="land-hamburger" onClick={() => setMenuOpen(o => !o)}>
@@ -90,7 +91,7 @@ export default function LandingPage() {
       {/* ── HERO ── */}
       <section className="land-hero">
         <div className="land-hero-badge">
-          <span className="land-pulse-dot" /> LIVE &nbsp;{blinkDots}&nbsp; Family Safety Platform
+          <span className="land-pulse-dot" /> 100% OPEN-SOURCE &nbsp;{blinkDots}&nbsp; Family Safety Mesh
         </div>
         <h1 className="land-hero-title">
           Your Family.<br />
@@ -98,19 +99,20 @@ export default function LandingPage() {
           Always Safe.
         </h1>
         <p className="land-hero-sub">
-          T3Find is a real-time family safety mesh. Track location, battery, ringer mode, and emergencies — 
-          all in one brutalist, no-nonsense dashboard built for people who actually care about each other.
+          T3Find is a 100% open-source real-time family safety mesh. Track location, battery, ringer mode, and emergencies — 
+          all in one brutalist dashboard built for people who actually care about each other.
         </p>
         <div className="land-hero-actions">
           <a href="/app" className="land-btn-primary">
             Launch Web App <span>→</span>
           </a>
           <a
-            href="/t3find.apk"
-            download="t3find.apk"
+            href="https://github.com/advitxsingh/t3find"
+            target="_blank"
+            rel="noopener noreferrer"
             className="land-btn-secondary"
           >
-            📱 Download Android APK
+            ⭐ View Source Code (GitHub)
           </a>
         </div>
 
@@ -221,10 +223,13 @@ export default function LandingPage() {
       <footer className="land-footer">
         <div className="land-footer-left">
           <span className="land-logo">⬡ T3Find</span>
-          <span className="land-footer-sub">Real-time family safety mesh</span>
+          <span className="land-footer-sub">100% Open-Source Real-Time Family Safety Mesh</span>
         </div>
-        <div className="land-footer-right">
-          <span>Built on Convex · Hosted on Vercel · v0.0.1</span>
+        <div className="land-footer-right" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <a href="https://github.com/advitxsingh/t3find" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--cream)', textDecoration: 'none', fontWeight: 700 }}>
+            ⭐ GitHub Repository
+          </a>
+          <span>MIT License · v0.0.1</span>
         </div>
       </footer>
     </div>
