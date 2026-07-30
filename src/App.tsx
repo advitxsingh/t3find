@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { api } from '../convex/_generated/api';
@@ -15,8 +15,8 @@ import './App.css';
 
 const RingerPlugin = registerPlugin<{ getRingerMode: () => Promise<{ ringerMode: 'Normal' | 'Silent' | 'Vibrate' }> }>('RingerPlugin');
 const NativeBatteryPlugin = registerPlugin<{ getNativeBatteryInfo: () => Promise<{ batteryLevel: number; isCharging: boolean }> }>('NativeBatteryPlugin');
-const getLocalVersion = (): string => localStorage.getItem('t3find_app_version') || '1.0.0';
-const setLocalVersion = (ver: string) => localStorage.setItem('t3find_app_version', ver);
+// CURRENT_APP_VERSION must be bumped manually each time a new APK/build is released
+const CURRENT_APP_VERSION = "0.0.1";
 
 // Reverse Geocoding helper function using Nominatim OpenStreetMap API
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
@@ -281,11 +281,11 @@ export function App() {
   // Listen to remote circle refresh pings from family members tapping "Sync"
   const myDbRecord = (dbFamilyMesh || []).find((t) => t.userId === user?._id);
   const remotePingTimestamp = myDbRecord?.requestRefreshPing;
-  const lastHandledPingRef = useState<{ time: number }>({ time: 0 })[0];
+  const lastHandledPingRef = useRef<number>(0);
 
   useEffect(() => {
-    if (remotePingTimestamp && remotePingTimestamp > lastHandledPingRef.time) {
-      lastHandledPingRef.time = remotePingTimestamp;
+    if (remotePingTimestamp && remotePingTimestamp > lastHandledPingRef.current) {
+      lastHandledPingRef.current = remotePingTimestamp;
       handleForceRefresh();
     }
   }, [remotePingTimestamp]);
@@ -335,18 +335,18 @@ export function App() {
               networkStatus: currentNetwork,
             };
 
-            // Throttle database writes to once every 15 seconds to prevent continuous syncing
-            if (now - lastDbUpdate > 15000) {
+            // Throttle database writes to once every 30 seconds to prevent continuous syncing
+            if (now - lastDbUpdate > 30000) {
               lastDbUpdate = now;
               updateTelemetryMutation({
                 ...updated,
                 heading: 0,
               }).catch(console.error);
+              setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
             }
 
             return updated;
           });
-          setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
         },
         (err) => console.log('GPS watch fallback', err),
         { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
@@ -446,8 +446,7 @@ export function App() {
 
   const activeTargetUser = focusedUser || currentUser;
 
-  const currentAppVersion = getLocalVersion();
-  const hasNewUpdate = !!(latestRelease && latestRelease.version && latestRelease.version !== currentAppVersion);
+  const hasNewUpdate = !!(latestRelease && latestRelease.version && latestRelease.version !== CURRENT_APP_VERSION);
 
   return (
     <div className="app-container">
@@ -470,14 +469,11 @@ export function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Sparkles size={16} />
             <span>
-              <strong>Update v{latestRelease?.version} Available! (Current: v{currentAppVersion})</strong> {latestRelease?.releaseNotes || "New features ready!"}
+              <strong>Update v{latestRelease?.version} Available!</strong> {latestRelease?.releaseNotes || "New features ready!"}
             </span>
           </div>
           <button
             onClick={() => {
-              if (latestRelease?.version) {
-                setLocalVersion(latestRelease.version);
-              }
               window.location.reload();
             }}
             style={{

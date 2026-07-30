@@ -388,6 +388,11 @@ export const publishRelease = mutation({
     isMandatory: v.boolean(),
   },
   handler: async (ctx, args) => {
+    // Delete ALL old releases first so only the latest ever exists
+    const existing = await ctx.db.query("appReleases").collect();
+    for (const r of existing) {
+      await ctx.db.delete(r._id);
+    }
     return await ctx.db.insert("appReleases", {
       version: args.version,
       downloadUrl: args.downloadUrl,
