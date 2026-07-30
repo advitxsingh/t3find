@@ -164,8 +164,10 @@ export default function LandingPage() {
           {features.map((f) => (
             <div className="land-feature-card" key={f.title}>
               <span className="land-feature-icon">{f.icon}</span>
-              <h3>{f.title}</h3>
-              <p>{f.desc}</p>
+              <div className="land-feature-card-text">
+                <h3>{f.title}</h3>
+                <p>{f.desc}</p>
+              </div>
             </div>
           ))}
         </div>
