@@ -56,9 +56,11 @@ class RingerPlugin extends Plugin {
         try {
             AudioManager audioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
             int mode = audioManager.getRingerMode();
+            int streamVolume = audioManager.getStreamVolume(AudioManager.STREAM_RING);
             String ringerStatus = "Normal";
 
-            if (mode == AudioManager.RINGER_MODE_SILENT) {
+            // If Android Ringer Mode is Silent OR Ring stream volume is 0, classify as Silent
+            if (mode == AudioManager.RINGER_MODE_SILENT || streamVolume == 0) {
                 ringerStatus = "Silent";
             } else if (mode == AudioManager.RINGER_MODE_VIBRATE) {
                 ringerStatus = "Vibrate";
