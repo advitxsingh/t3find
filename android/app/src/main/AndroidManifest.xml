@@ -44,13 +44,6 @@
 
         </activity>
 
-        <!-- Persistent Foreground Location Service Declaration -->
-        <service
-            android:name=".PersistentLocationService"
-            android:foregroundServiceType="location"
-            android:enabled="true"
-            android:exported="false" />
-
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
