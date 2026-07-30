@@ -103,10 +103,15 @@ export default function LandingPage() {
         </p>
         <div className="land-hero-actions">
           <a href="/app" className="land-btn-primary">
-            Launch App <span>→</span>
+            Launch Web App <span>→</span>
           </a>
-          <a href="#features" className="land-btn-secondary">
-            See Features
+          <a
+            href="https://github.com/advitxsingh/t3find/releases/latest"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="land-btn-secondary"
+          >
+            📱 Download Android APK
           </a>
         </div>
 
@@ -202,7 +207,15 @@ export default function LandingPage() {
         <h2>Your family is one tap away.</h2>
         <p>No app store. No install. Open T3Find in your browser or install the Android APK.</p>
         <div className="land-hero-actions">
-          <a href="/app" className="land-btn-primary">Open T3Find →</a>
+          <a href="/app" className="land-btn-primary">Open T3Find Web App →</a>
+          <a
+            href="https://github.com/advitxsingh/t3find/releases/latest"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="land-btn-secondary"
+          >
+            📱 Download Android APK
+          </a>
         </div>
       </section>
 
