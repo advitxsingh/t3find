@@ -1,4 +1,4 @@
-/* T3Find Design System - Sharp Boxy Architectural Aesthetics with Mobile Responsive Map Dominance */
+/* T3Find Design System - Mobile Viewport Height & Layout Collisions Fix */
 :root {
   --bg-main: #faf9f6;
   --bg-surface: #ffffff;
@@ -40,10 +40,10 @@ body {
   background-color: var(--bg-main);
   color: var(--text-main);
   width: 100vw;
-  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for mobile browsers */
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
-  font-size: 16px;
+  font-size: 15px;
 }
 
 /* Custom Leaflet Marker Styling */
@@ -54,7 +54,7 @@ body {
 
 .app-container {
   width: 100vw;
-  height: 100vh;
+  height: 100dvh; /* Use dynamic 100dvh to prevent bottom address bar clipping */
   display: flex;
   flex-direction: column;
   background-color: var(--bg-main);
@@ -62,8 +62,8 @@ body {
 }
 
 .app-header {
-  height: 72px;
-  padding: 0 24px;
+  height: 64px;
+  padding: 0 20px;
   background-color: var(--bg-surface);
   border-bottom: 2px solid var(--border-dark);
   display: flex;
@@ -71,42 +71,48 @@ body {
   justify-content: space-between;
   box-shadow: var(--shadow-sm);
   z-index: 1000;
+  flex-shrink: 0;
 }
 
 .workspace-grid {
   flex: 1;
   display: grid;
   grid-template-columns: 1fr 440px;
-  gap: 24px;
-  padding: 24px;
+  gap: 20px;
+  padding: 20px;
   overflow: hidden;
 }
 
-/* Mobile Responsive Optimization: Map takes 65% of screen height */
+/* Smartphone Layout Fix: Fixed height split with internal scrolling */
 @media (max-width: 900px) {
   .app-header {
-    height: 60px;
-    padding: 0 14px;
+    height: 56px;
+    padding: 0 12px;
   }
 
   .workspace-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: 62vh 1fr; /* Map gets 62% screen height on phones! */
+    grid-template-rows: 45vh 1fr; /* Map gets 45vh so sidebar diagnostic cards have full scroll room */
     padding: 0;
     gap: 0;
+    overflow-y: hidden;
   }
 
   .sidebar-container {
     border-top: 2px solid var(--border-dark) !important;
     border-left: none !important;
     box-shadow: none !important;
+    padding: 16px !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    max-height: calc(100dvh - 56px - 45vh);
   }
 }
 
 /* Studio Hero Boxy SOS Button */
 .sos-hero-ring {
-  width: 90px;
-  height: 64px;
+  width: 80px;
+  height: 54px;
   border: 2px solid var(--border-dark);
   color: #ffffff;
   display: flex;

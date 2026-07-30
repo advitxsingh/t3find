@@ -62,7 +62,7 @@ export function App() {
     locationName: 'Connaught Place, New Delhi, Delhi - 110001',
     accuracy: 8,
     speed: 0.8,
-    batteryLevel: 92,
+    batteryLevel: null,
     isCharging: false,
     ringerMode: 'Normal',
     isEmergency: false,
@@ -80,8 +80,28 @@ export function App() {
         const battery: any = await (navigator as any).getBattery();
         currentBattery = Math.round(battery.level * 100);
         currentCharging = battery.charging;
+
+        // Register live battery status change listeners
+        battery.onlevelchange = () => {
+          const freshLevel = Math.round(battery.level * 100);
+          setLocalTelemetry((prev) => ({ ...prev, batteryLevel: freshLevel }));
+        };
+        battery.onchargingchange = () => {
+          setLocalTelemetry((prev) => ({ ...prev, isCharging: battery.charging }));
+        };
       } catch (e) {
         console.log('Battery API fallback');
+      }
+    }
+
+    // Dynamic Network Connection API Detection (4G / 5G / Wi-Fi)
+    const conn: any = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    let detectedNetwork = 'Active Network';
+    if (conn) {
+      if (conn.type === 'wifi') {
+        detectedNetwork = 'Wi-Fi Network';
+      } else if (conn.effectiveType) {
+        detectedNetwork = `${conn.effectiveType.toUpperCase()} Active`;
       }
     }
 
@@ -111,7 +131,7 @@ export function App() {
               ...localTelemetry,
               ...freshTelemetry,
               heading: 0,
-              networkStatus: '5G Active (Synced)',
+              networkStatus: detectedNetwork,
             }).catch(console.error);
           }
 
