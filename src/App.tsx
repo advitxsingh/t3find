@@ -15,7 +15,8 @@ import './App.css';
 
 const RingerPlugin = registerPlugin<{ getRingerMode: () => Promise<{ ringerMode: 'Normal' | 'Silent' | 'Vibrate' }> }>('RingerPlugin');
 const NativeBatteryPlugin = registerPlugin<{ getNativeBatteryInfo: () => Promise<{ batteryLevel: number; isCharging: boolean }> }>('NativeBatteryPlugin');
-const CURRENT_APP_VERSION = "1.0.0";
+const getLocalVersion = (): string => localStorage.getItem('t3find_app_version') || '1.0.0';
+const setLocalVersion = (ver: string) => localStorage.setItem('t3find_app_version', ver);
 
 // Reverse Geocoding helper function using Nominatim OpenStreetMap API
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
@@ -436,7 +437,8 @@ export function App() {
 
   const activeTargetUser = focusedUser || currentUser;
 
-  const hasNewUpdate = !!(latestRelease && latestRelease.version && latestRelease.version !== CURRENT_APP_VERSION);
+  const currentAppVersion = getLocalVersion();
+  const hasNewUpdate = !!(latestRelease && latestRelease.version && latestRelease.version !== currentAppVersion);
 
   return (
     <div className="app-container">
@@ -459,11 +461,14 @@ export function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Sparkles size={16} />
             <span>
-              <strong>Update v{latestRelease?.version || "1.0.1"} Available! (Current: v{CURRENT_APP_VERSION})</strong> {latestRelease?.releaseNotes || "New features ready!"}
+              <strong>Update v{latestRelease?.version} Available! (Current: v{currentAppVersion})</strong> {latestRelease?.releaseNotes || "New features ready!"}
             </span>
           </div>
           <button
             onClick={() => {
+              if (latestRelease?.version) {
+                setLocalVersion(latestRelease.version);
+              }
               window.location.reload();
             }}
             style={{
