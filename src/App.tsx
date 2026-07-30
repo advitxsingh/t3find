@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { api } from '../convex/_generated/api';
-import { Battery, Signal, Navigation, Users, UserPlus, Eye, Bell, BellOff, Zap, LogOut, Edit3, KeyRound, RefreshCw, Radio, MapPin } from 'lucide-react';
+import { Battery, Wifi, Navigation, Users, UserPlus, Eye, Bell, BellOff, Zap, LogOut, Edit3, KeyRound, RefreshCw, Radio, MapPin } from 'lucide-react';
 import { MapView } from './components/MapView';
 import { AuthForm } from './components/AuthForm';
 import { FamilySetupModal } from './components/FamilySetupModal';
@@ -56,6 +56,7 @@ export function App() {
     isCharging: boolean;
     ringerMode: 'Normal' | 'Silent' | 'Vibrate';
     isEmergency: boolean;
+    networkStatus: string;
   }>({
     lat: 28.6139,
     lng: 77.2090,
@@ -66,7 +67,23 @@ export function App() {
     isCharging: false,
     ringerMode: 'Normal',
     isEmergency: false,
+    networkStatus: 'Wi-Fi / Cellular',
   });
+
+  // Query Network API (detect Wi-Fi vs Cellular Network Connection)
+  const getNetworkState = (): string => {
+    const conn: any = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    if (conn) {
+      if (conn.type === 'wifi') {
+        return '📶 Connected to Wi-Fi';
+      } else if (conn.type === 'cellular') {
+        return '📡 Cellular Data';
+      } else if (navigator.onLine) {
+        return conn.effectiveType ? `📡 ${conn.effectiveType.toUpperCase()} Signal` : '📶 Wi-Fi / Cellular';
+      }
+    }
+    return navigator.onLine ? '📶 Network Connected' : '⚠️ Offline';
+  };
 
   // Manual Force Refresh Handler
   const handleForceRefresh = useCallback(async () => {
@@ -80,38 +97,18 @@ export function App() {
         const battery: any = await (navigator as any).getBattery();
         currentBattery = Math.round(battery.level * 100);
         currentCharging = battery.charging;
-
-        // Register live battery status change listeners
-        battery.onlevelchange = () => {
-          const freshLevel = Math.round(battery.level * 100);
-          setLocalTelemetry((prev) => ({ ...prev, batteryLevel: freshLevel }));
-        };
-        battery.onchargingchange = () => {
-          setLocalTelemetry((prev) => ({ ...prev, isCharging: battery.charging }));
-        };
       } catch (e) {
         console.log('Battery API fallback');
       }
     }
 
-    // Dynamic Network Connection API Detection (4G / 5G / Wi-Fi)
-    const conn: any = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-    let detectedNetwork = 'Active Network';
-    if (conn) {
-      if (conn.type === 'wifi') {
-        detectedNetwork = 'Wi-Fi Network';
-      } else if (conn.effectiveType) {
-        detectedNetwork = `${conn.effectiveType.toUpperCase()} Active`;
-      }
-    }
+    const currentNetwork = getNetworkState();
 
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
-
-          // Reverse geocode to get Area, City, State, Pincode
           const addressName = await reverseGeocode(lat, lng);
 
           const freshTelemetry = {
@@ -122,6 +119,7 @@ export function App() {
             speed: pos.coords.speed,
             batteryLevel: currentBattery,
             isCharging: currentCharging,
+            networkStatus: currentNetwork,
           };
 
           setLocalTelemetry((prev) => ({ ...prev, ...freshTelemetry }));
@@ -131,7 +129,6 @@ export function App() {
               ...localTelemetry,
               ...freshTelemetry,
               heading: 0,
-              networkStatus: detectedNetwork,
             }).catch(console.error);
           }
 
@@ -168,6 +165,7 @@ export function App() {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
           const addressName = await reverseGeocode(lat, lng);
+          const currentNetwork = getNetworkState();
 
           const newTelemetry = {
             lat,
@@ -175,13 +173,13 @@ export function App() {
             locationName: addressName,
             accuracy: Math.round(pos.coords.accuracy),
             speed: pos.coords.speed,
+            networkStatus: currentNetwork,
           };
           setLocalTelemetry((prev) => ({ ...prev, ...newTelemetry }));
           updateTelemetryMutation({
             ...localTelemetry,
             ...newTelemetry,
             heading: 0,
-            networkStatus: '5G Active',
           }).catch(console.error);
           setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
         },
@@ -250,7 +248,7 @@ export function App() {
     batteryLevel: localTelemetry.batteryLevel,
     isCharging: localTelemetry.isCharging,
     ringerMode: localTelemetry.ringerMode,
-    networkStatus: '5G Active',
+    networkStatus: localTelemetry.networkStatus,
     isEmergency: localTelemetry.isEmergency,
     lastUpdated: Date.now(),
     guardiansCount: dbUsersList.length || 1,
@@ -265,7 +263,6 @@ export function App() {
       ...localTelemetry,
       isEmergency: nextEmergencyState,
       heading: 0,
-      networkStatus: '5G Active',
     }).catch(console.error);
   };
 
@@ -278,7 +275,6 @@ export function App() {
       ...localTelemetry,
       ringerMode: nextMode,
       heading: 0,
-      networkStatus: '5G Active',
     }).catch(console.error);
   };
 
@@ -410,7 +406,7 @@ export function App() {
 
       {/* Main Workspace Grid */}
       <main className="workspace-grid">
-        {/* Left Map View Area (62% screen height on mobile) */}
+        {/* Left Map View Area */}
         <section
           style={{
             position: 'relative',
@@ -517,8 +513,8 @@ export function App() {
                 <Battery size={14} /> BATTERY
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                <span style={{ fontSize: '16px', fontWeight: 900, color: activeTargetUser.batteryLevel && activeTargetUser.batteryLevel <= 20 ? 'var(--color-emergency)' : 'var(--text-main)' }}>
-                  {activeTargetUser.batteryLevel}%
+                <span style={{ fontSize: '15px', fontWeight: 900, color: activeTargetUser.batteryLevel !== null && activeTargetUser.batteryLevel <= 20 ? 'var(--color-emergency)' : 'var(--text-main)' }}>
+                  {activeTargetUser.batteryLevel !== null && activeTargetUser.batteryLevel !== undefined ? `${activeTargetUser.batteryLevel}%` : 'Unavailable'}
                 </span>
                 {activeTargetUser.isCharging ? (
                   <span style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '2px' }}>
@@ -549,13 +545,13 @@ export function App() {
               </div>
             </div>
 
-            {/* Network Signal */}
+            {/* Network Connection / Wi-Fi */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <Signal size={14} /> CELLULAR
+                <Wifi size={14} /> NETWORK CONNECTION
               </span>
-              <span style={{ fontSize: '14px', fontWeight: 900, color: 'var(--text-main)', marginTop: '2px' }}>
-                {activeTargetUser.networkStatus}
+              <span style={{ fontSize: '13px', fontWeight: 900, color: 'var(--text-main)', marginTop: '2px' }}>
+                {activeTargetUser.networkStatus || 'Connected'}
               </span>
             </div>
 
@@ -622,7 +618,7 @@ export function App() {
                         </p>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                           <span>
-                            {member.batteryLevel}% {member.isCharging ? '⚡ Charging' : '🔋 Discharging'}
+                            {member.batteryLevel !== null && member.batteryLevel !== undefined ? `${member.batteryLevel}%` : 'N/A'} {member.isCharging ? '⚡ Charging' : '🔋 Discharging'}
                           </span>
                           <span>•</span>
                           <span style={{ color: member.ringerMode === 'Silent' ? 'var(--color-emergency)' : 'inherit', fontWeight: member.ringerMode === 'Silent' ? 700 : 500 }}>
