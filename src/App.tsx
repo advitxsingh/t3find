@@ -436,7 +436,7 @@ export function App() {
 
   const activeTargetUser = focusedUser || currentUser;
 
-  const hasNewUpdate = latestRelease && latestRelease.version !== CURRENT_APP_VERSION;
+  const hasNewUpdate = !!latestRelease;
 
   return (
     <div className="app-container">
@@ -459,7 +459,7 @@ export function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Sparkles size={16} />
             <span>
-              <strong>Update v{latestRelease.version} Available!</strong> {latestRelease.releaseNotes}
+              <strong>Update v{latestRelease?.version || "1.0.1"} Available! (Current: v{CURRENT_APP_VERSION})</strong> {latestRelease?.releaseNotes || "New features ready!"}
             </span>
           </div>
           <button
