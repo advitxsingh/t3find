@@ -196,27 +196,29 @@ export function App() {
           const lng = pos.coords.longitude;
           const addressName = await reverseGeocode(lat, lng);
 
-          const freshTelemetry = {
-            lat,
-            lng,
-            locationName: addressName,
-            accuracy: Math.round(pos.coords.accuracy),
-            speed: pos.coords.speed,
-            batteryLevel: currentBattery,
-            isCharging: currentCharging,
-            ringerMode: currentRinger,
-            networkStatus: currentNetwork,
-          };
+          setLocalTelemetry((prev) => {
+            const freshTelemetry = {
+              ...prev,
+              lat,
+              lng,
+              locationName: addressName,
+              accuracy: Math.round(pos.coords.accuracy),
+              speed: pos.coords.speed,
+              batteryLevel: currentBattery,
+              isCharging: currentCharging,
+              ringerMode: currentRinger,
+              networkStatus: currentNetwork,
+            };
 
-          setLocalTelemetry((prev) => ({ ...prev, ...freshTelemetry }));
+            if (user) {
+              updateTelemetryMutation({
+                ...freshTelemetry,
+                heading: 0,
+              }).catch(console.error);
+            }
 
-          if (user) {
-            await updateTelemetryMutation({
-              ...localTelemetry,
-              ...freshTelemetry,
-              heading: 0,
-            }).catch(console.error);
-          }
+            return freshTelemetry;
+          });
 
           setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
           setIsRefreshing(false);
@@ -293,20 +295,22 @@ export function App() {
           const addressName = await reverseGeocode(lat, lng);
           const currentNetwork = getNetworkState();
 
-          const newTelemetry = {
-            lat,
-            lng,
-            locationName: addressName,
-            accuracy: Math.round(pos.coords.accuracy),
-            speed: pos.coords.speed,
-            networkStatus: currentNetwork,
-          };
-          setLocalTelemetry((prev) => ({ ...prev, ...newTelemetry }));
-          updateTelemetryMutation({
-            ...localTelemetry,
-            ...newTelemetry,
-            heading: 0,
-          }).catch(console.error);
+          setLocalTelemetry((prev) => {
+            const updated = {
+              ...prev,
+              lat,
+              lng,
+              locationName: addressName,
+              accuracy: Math.round(pos.coords.accuracy),
+              speed: pos.coords.speed,
+              networkStatus: currentNetwork,
+            };
+            updateTelemetryMutation({
+              ...updated,
+              heading: 0,
+            }).catch(console.error);
+            return updated;
+          });
           setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
         },
         (err) => console.log('GPS watch fallback', err),
