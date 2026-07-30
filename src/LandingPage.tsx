@@ -107,8 +107,9 @@ export default function LandingPage() {
             Launch Web App <span>→</span>
           </a>
           <a
-            href="/t3find.apk"
-            download="t3find.apk"
+            href="https://github.com/advitxsingh/t3find/releases/latest"
+            target="_blank"
+            rel="noopener noreferrer"
             className="land-btn-secondary"
           >
             📱 Download Android APK
@@ -217,8 +218,9 @@ export default function LandingPage() {
         <div className="land-hero-actions">
           <a href="/app" className="land-btn-primary">Open T3Find Web App →</a>
           <a
-            href="/t3find.apk"
-            download="t3find.apk"
+            href="https://github.com/advitxsingh/t3find/releases/latest"
+            target="_blank"
+            rel="noopener noreferrer"
             className="land-btn-secondary"
           >
             📱 Download Android APK
