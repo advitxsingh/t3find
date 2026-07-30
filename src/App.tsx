@@ -18,7 +18,18 @@ const NativeBatteryPlugin = registerPlugin<{ getNativeBatteryInfo: () => Promise
 // CURRENT_APP_VERSION must be bumped manually each time a new APK/build is released
 const CURRENT_APP_VERSION = "0.0.1";
 
-// Reverse Geocoding helper function using Nominatim OpenStreetMap API
+// Helper to format dynamic relative time (e.g., "Just now", "12s ago", "3m ago")
+function formatRelativeTime(timestamp: number | undefined, nowMs: number): string {
+  if (!timestamp) return 'Just now';
+  const diffSec = Math.max(0, Math.floor((nowMs - timestamp) / 1000));
+  if (diffSec < 8) return 'Just now';
+  if (diffSec < 60) return `${diffSec}s ago`;
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
@@ -56,7 +67,13 @@ export function App() {
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const [showSafeZoneModal, setShowSafeZoneModal] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [lastSyncedTime, setLastSyncedTime] = useState<string>('Just now');
+  const [nowMs, setNowMs] = useState<number>(Date.now());
+
+  // Live ticker to update relative sync time labels ("Just now", "12s ago", "2m ago") in real time
+  useEffect(() => {
+    const ticker = setInterval(() => setNowMs(Date.now()), 3000);
+    return () => clearInterval(ticker);
+  }, []);
 
 
   // Local device telemetry state
@@ -224,7 +241,6 @@ export function App() {
             return freshTelemetry;
           });
 
-          setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
           setIsRefreshing(false);
         },
         (err) => {
@@ -335,7 +351,6 @@ export function App() {
                 ...updated,
                 heading: 0,
               }).catch(console.error);
-              setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
             }
 
             return updated;
@@ -697,8 +712,8 @@ export function App() {
               <h2 style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text-main)', marginTop: '2px' }}>
                 {activeTargetUser.name}
               </h2>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                Synced: {lastSyncedTime}
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>
+                Synced: {formatRelativeTime(activeTargetUser.lastUpdated, nowMs)}
               </span>
             </div>
 
@@ -880,13 +895,17 @@ export function App() {
                         <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginTop: '1px' }}>
                           {member.locationName ? member.locationName.split(',').slice(0, 2).join(',') : 'Locating...'}
                         </p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', flexWrap: 'wrap' }}>
                           <span>
-                            {member.batteryLevel !== null && member.batteryLevel !== undefined ? `${member.batteryLevel}%` : 'N/A'} {member.isCharging ? '⚡ Charging' : '🔋 Discharging'}
+                            {member.batteryLevel !== null && member.batteryLevel !== undefined ? `${member.batteryLevel}%` : 'N/A'} {member.isCharging ? '⚡' : '🔋'}
                           </span>
                           <span>•</span>
                           <span style={{ color: member.ringerMode === 'Silent' ? 'var(--color-emergency)' : 'inherit', fontWeight: member.ringerMode === 'Silent' ? 700 : 500 }}>
                             {member.ringerMode === 'Silent' ? '🔇 Silent' : member.ringerMode === 'Vibrate' ? '📳 Vibrate' : '🔔 Ring'}
+                          </span>
+                          <span>•</span>
+                          <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>
+                            {formatRelativeTime(member.lastUpdated, nowMs)}
                           </span>
                         </div>
                       </div>
